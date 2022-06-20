@@ -11,8 +11,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.TextFieldDefaults.indicatorLine
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
@@ -20,10 +20,10 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.constraintlayout.compose.ConstraintLayout
 
 @OptIn(
     ExperimentalMaterialApi::class, ExperimentalMaterialApi::class,
@@ -38,38 +38,89 @@ fun CustomTextField(
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     startDrawable: Int = -1,
     trailingIcon: @Composable (() -> Unit)? = null,
+    isError: Boolean = false,
+    helperMessage: @Composable (() -> Unit)? = null,
+    errorMessage: @Composable (() -> Unit)? = null,
 ) {
 
-    Row(horizontalArrangement = Arrangement.Center) {
-        if (startDrawable > -1) {
-            Icon(
-                modifier = Modifier
-                    .padding(end = 10.dp)
-                    .align(Alignment.Bottom),
-                painter = painterResource(id = startDrawable),
-                contentDescription = null,
-                tint = Color.Unspecified
+
+        ConstraintLayout(Modifier.padding(start = 35.dp)) {
+
+            var (icon, textField, errorBox) = createRefs()
+
+            if (startDrawable > -1) {
+                Icon(
+                    modifier = Modifier
+                        .constrainAs(icon) {
+                            start.linkTo(parent.absoluteLeft)
+                            bottom.linkTo(textField.bottom)
+                            end.linkTo(textField.start)
+                        }
+                        ,
+                    painter = painterResource(id = startDrawable),
+                    contentDescription = null,
+                    tint = Color.Unspecified
+                )
+            }
+            NewTextField(
+                value = value,
+                onValueChange = onValueChange,
+                modifier = modifier
+                    .fillMaxWidth()
+                    .padding(start = 10.dp)
+                    .clickable { MutableInteractionSource() }
+                    .constrainAs(textField)
+                    {
+                        start.linkTo(icon.end)
+                        top.linkTo(parent.top)
+                        bottom.linkTo(parent.bottom)
+                        end.linkTo(parent.end)
+                    },
+                label = label,
+                trailingIcon = trailingIcon,
+                interactionSource = interactionSource,
+                contentPadding = TextFieldDefaults.textFieldWithoutLabelPadding(
+                    start = 0.dp,
+                    end = 0.dp,
+                    top = 0.dp,
+                    bottom = 3.dp
+                ),
+                isError = isError,
             )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 10.dp)
+                    .constrainAs(errorBox) {
+                        start.linkTo(icon.end)
+                        top.linkTo(textField.bottom)
+                    }
+                    .padding(top = 4.dp)
+            ) {
+                CompositionLocalProvider(
+                    LocalTextStyle provides LocalTextStyle.current.copy(
+                        fontSize = 12.sp,
+                        color = if (isError) MaterialTheme.colors.error else LocalTextStyle.current.color
+                    )
+                ) {
+                    if (isError) {
+                        if (errorMessage != null) {
+                            errorMessage()
+                        }
+                    } else {
+                        if (helperMessage != null) {
+                            CompositionLocalProvider(
+                                LocalContentAlpha provides ContentAlpha.medium
+                            ) {
+                                helperMessage()
+                            }
+                        }
+                    }
+                }
+            }
         }
-
-        // parameters below will be passed to BasicTextField for correct behavior of the text field,
-        // and to the decoration box for proper styling and sizing
-        val enabled = true
-        val singleLine = true
-        val colors = TextFieldDefaults.textFieldColors(backgroundColor = Color.Transparent)
-
-        NewTextField(
-            value = value,
-            onValueChange = onValueChange,
-            modifier = modifier.clickable {MutableInteractionSource() },
-            label = label,
-            trailingIcon = trailingIcon,
-            interactionSource=interactionSource,
-            contentPadding = TextFieldDefaults.textFieldWithoutLabelPadding(start = 0.dp, end = 0.dp, top = 0.dp)
-        )
-    }
 }
-
 
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -92,14 +143,18 @@ fun NewTextField(
     singleLine: Boolean = false,
     maxLines: Int = Int.MAX_VALUE,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
-    shape: Shape = androidx.compose.material.MaterialTheme.shapes.small.copy(bottomEnd = ZeroCornerSize, bottomStart = ZeroCornerSize),
-    colors: TextFieldColors = TextFieldDefaults.textFieldColors(),
+    shape: Shape = androidx.compose.material.MaterialTheme.shapes.small.copy(
+        bottomEnd = ZeroCornerSize,
+        bottomStart = ZeroCornerSize
+    ),
+    colors: TextFieldColors = TextFieldDefaults.textFieldColors(backgroundColor = Color.Transparent),
     contentPadding: PaddingValues =
         if (label == null) {
             TextFieldDefaults.textFieldWithoutLabelPadding()
         } else {
             TextFieldDefaults.textFieldWithLabelPadding()
-        }) {
+        }
+) {
     // If color is not provided via the text style, use content color as a default
     val textColor = textStyle.color.takeOrElse {
         colors.textColor(enabled).value
@@ -111,11 +166,7 @@ fun NewTextField(
         value = value,
         modifier = modifier
             .background(colors.backgroundColor(enabled).value, shape)
-            .indicatorLine(enabled, isError, interactionSource, colors)
-            .defaultMinSize(
-                minWidth = TextFieldDefaults.MinWidth,
-                minHeight = TextFieldDefaults.MinHeight
-            ),
+            .indicatorLine(enabled, isError, interactionSource, colors),
         onValueChange = onValueChange,
         enabled = enabled,
         readOnly = readOnly,
@@ -142,6 +193,7 @@ fun NewTextField(
                 isError = isError,
                 interactionSource = interactionSource,
                 colors = colors,
+                contentPadding = contentPadding
             )
         }
     )

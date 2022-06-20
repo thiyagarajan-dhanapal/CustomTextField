@@ -21,8 +21,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.myapplication.ui.theme.MyApplicationTheme
 import com.example.myapplication.R.drawable
+import com.example.myapplication.ui.theme.MyApplicationTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,17 +50,12 @@ class MainActivity : ComponentActivity() {
                         )
                         Column(
                             verticalArrangement = Arrangement.spacedBy(24.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 32.dp, start = 35.dp, end = 35.dp)
                         ) {
 
 
-                            var interactionSource =remember { MutableInteractionSource() }
-                            CustomTextField(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .wrapContentHeight(),
+                            var interactionSource = remember { MutableInteractionSource() }
+                            CustomTextField(modifier = Modifier
+                                .wrapContentHeight(),
                                 value = studentName.value,
                                 onValueChange = { studentName.value = it },
                                 interactionSource = interactionSource,
@@ -70,16 +65,11 @@ class MainActivity : ComponentActivity() {
                                         style = if (interactionSource.collectIsFocusedAsState().value) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyLarge
                                     )
                                 },
-                                startDrawable = drawable.ic_onboard_student
-                            )
-                            TextField(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .wrapContentHeight(),
-                                value = dummy.value,
-                                onValueChange = { dummy.value = it },
-                                label = { Text(text = "Student’s Name*") },
-                            )
+                                startDrawable = drawable.ic_onboard_student,
+                                isError = true,
+                                errorMessage = { Text(text = "error message") },
+                                helperMessage = { Text(text = "helper message") })
+
                             CustomTextField(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -107,22 +97,19 @@ class MainActivity : ComponentActivity() {
                                 label = { Text(text = "Select Grade/Course *") },
                                 startDrawable = drawable.ic_onboard_grade
                             )
-                            CustomTextField(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .wrapContentHeight(),
+                            CustomTextField(modifier = Modifier
+                                .fillMaxWidth()
+                                .wrapContentHeight(),
                                 value = schoolName.value,
                                 onValueChange = { schoolName.value = it },
                                 label = { Text(text = "Enter School Name *") },
-                                startDrawable = drawable.ic_onboard_school
-                            ) {
-                                Icon(
-                                    painter = painterResource(id = drawable.ic_arrow_down),
-                                    contentDescription = null
-                                )
-                            }
-
-
+                                startDrawable = drawable.ic_onboard_school,
+                                trailingIcon = {
+                                    Icon(
+                                        painter = painterResource(id = drawable.ic_arrow_down),
+                                        contentDescription = null
+                                    )
+                                })
                         }
 
                         Button(
@@ -161,7 +148,24 @@ fun Greeting(name: String) {
 @Composable
 fun DefaultPreview() {
     MyApplicationTheme {
-        Greeting("Android")
+        val studentName = rememberSaveable { mutableStateOf("") }
+        var interactionSource = remember { MutableInteractionSource() }
+        CustomTextField(modifier = Modifier
+            .fillMaxWidth()
+            .wrapContentHeight(),
+            value = studentName.value,
+            onValueChange = { studentName.value = it },
+            interactionSource = interactionSource,
+            label = {
+                Text(
+                    text = "Student’s Name*",
+                    style = if (interactionSource.collectIsFocusedAsState().value) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyLarge
+                )
+            },
+            startDrawable = drawable.ic_onboard_student,
+            isError = true,
+            errorMessage = { Text(text = "error message", textAlign = TextAlign.Start) },
+            helperMessage = { Text(text = "helper message") })
     }
 }
 
